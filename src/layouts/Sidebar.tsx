@@ -16,11 +16,11 @@ export default function Sidebar() {
       
       {/* Logo */}
       <div className="flex flex-col">
-        <span className="font-poppins text-[48px] text-gray-900">
-          Sedap <b className="text-hijau">.</b>
+        <span className="font-poppins text-[30px] text-gray-900">
+          AKADEMIK PCR <b className="text-hijau">.</b>
         </span>
         <span className="font-semibold text-gray-400">
-          Modern Admin Dashboard
+          Politeknik Caltex Riau
         </span>
       </div>
 

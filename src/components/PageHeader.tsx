@@ -2,12 +2,14 @@ interface PageHeaderProps {
   title: string;
   breadcrumb: string;
   buttonLabel?: string;
+  onClick?: () => void;
 }
 
 export default function PageHeader({
   title,
   breadcrumb,
   buttonLabel,
+  onClick,
 }: PageHeaderProps) {
   return (
     <div className="flex items-center justify-between">
@@ -19,7 +21,10 @@ export default function PageHeader({
       </div>
 
       {buttonLabel && (
-        <button className="bg-hijau text-white px-4 py-2 rounded-lg shadow hover:opacity-90">
+        <button
+          onClick={onClick}
+          className="bg-hijau text-white px-4 py-2 rounded-lg"
+        >
           {buttonLabel}
         </button>
       )}

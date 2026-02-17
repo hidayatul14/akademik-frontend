@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: "Poppins";
-  src: url("/fonts/Poppins-Regular.ttf") format("truetype");
+  src: url("../../public/fonts/Poppins-Bold.ttf") format("truetype");
 }
 
 @font-face {
@@ -26,4 +26,19 @@
 
 body {
   @apply font-barlow bg-latar;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out;
 }
