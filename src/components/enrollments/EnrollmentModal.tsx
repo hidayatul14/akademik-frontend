@@ -22,6 +22,20 @@ export default function EnrollmentModal({
   const [courses, setCourses] = useState<any[]>([]);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
+  const searchStudent = async (keyword: string) => {
+    const res = await api.get("/students/search", {
+      params: { search: keyword },
+    });
+    setStudents(res.data);
+  };
+
+  const searchCourse = async (keyword: string) => {
+    const res = await api.get("/courses/search", {
+      params: { search: keyword },
+    });
+    setCourses(res.data);
+  };
+
   const [form, setForm] = useState<any>({
     student_id: "",
     course_id: "",
@@ -39,23 +53,6 @@ export default function EnrollmentModal({
   /* ==============================
      FETCH EXISTING DATA
   ============================== */
-
-  useEffect(() => {
-    if (useExistingStudent) {
-      api.get("/students").then((res) => {
-        setStudents(res.data.data ?? res.data);
-      });
-    }
-  }, [useExistingStudent]);
-
-  useEffect(() => {
-    if (useExistingCourse) {
-      api.get("/courses").then((res) => {
-        setCourses(res.data.data ?? res.data);
-      });
-    }
-  }, [useExistingCourse]);
-
   /* ==============================
      PREFILL EDIT
   ============================== */
@@ -76,12 +73,28 @@ export default function EnrollmentModal({
 
   const handleSubmit = async () => {
     try {
-      setErrors({}); // reset error sebelum submit
+      setErrors({});
+
+      let payload = { ...form };
+
+      // 🔥 Jika pakai existing student
+      if (useExistingStudent) {
+        delete payload.nim;
+        delete payload.student_name;
+        delete payload.email;
+      }
+
+      // 🔥 Jika pakai existing course
+      if (useExistingCourse) {
+        delete payload.course_code;
+        delete payload.course_name;
+        delete payload.credits;
+      }
 
       if (editData) {
-        await api.put(`/enrollments/${editData.id}`, form);
+        await api.put(`/enrollments/${editData.id}`, payload);
       } else {
-        await api.post("/enrollments", form);
+        await api.post("/enrollments", payload);
       }
 
       refresh();
@@ -90,7 +103,7 @@ export default function EnrollmentModal({
       if (err.response?.status === 422) {
         alert(err.response.data.message);
       } else {
-        alert("Something went wrong. Please try again.");
+        alert("Something went wrong.");
       }
     }
   };
@@ -117,19 +130,33 @@ export default function EnrollmentModal({
           </label>
 
           {useExistingStudent ? (
-            <select
-              className="border w-full p-2 rounded"
-              onChange={(e) =>
-                setForm({ ...form, student_id: Number(e.target.value) })
-              }
-            >
-              <option value="">Select Student</option>
-              {students.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nim} - {s.name}
-                </option>
-              ))}
-            </select>
+            <>
+              {/* Input Search */}
+              <input
+                placeholder="Search student (NIM / Name)..."
+                className="border w-full p-2 rounded"
+                onChange={(e) => searchStudent(e.target.value)}
+              />
+
+              {/* Dropdown Result */}
+              <select
+                className="border w-full p-2 rounded mt-2"
+                value={form.student_id}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    student_id: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+              >
+                <option value="">Select Student</option>
+                {students.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nim} - {s.name}
+                  </option>
+                ))}
+              </select>
+            </>
           ) : (
             <>
               <input
@@ -184,19 +211,33 @@ export default function EnrollmentModal({
           </label>
 
           {useExistingCourse ? (
-            <select
-              className="border w-full p-2 rounded"
-              onChange={(e) =>
-                setForm({ ...form, course_id: Number(e.target.value) })
-              }
-            >
-              <option value="">Select Course</option>
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.code} - {c.name}
-                </option>
-              ))}
-            </select>
+            <>
+              {/* Input Search */}
+              <input
+                placeholder="Search course (Code / Name)..."
+                className="border w-full p-2 rounded"
+                onChange={(e) => searchCourse(e.target.value)}
+              />
+
+              {/* Dropdown Result */}
+              <select
+                className="border w-full p-2 rounded mt-2"
+                value={form.course_id}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    course_id: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+              >
+                <option value="">Select Course</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.code} - {c.name}
+                  </option>
+                ))}
+              </select>
+            </>
           ) : (
             <>
               <input

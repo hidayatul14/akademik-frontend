@@ -42,3 +42,11 @@ body {
 .animate-scaleIn {
   animation: scaleIn 0.2s ease-out;
 }
+
+.menu-link {
+  @apply flex items-center p-3 rounded-lg text-gray-600 hover:bg-green-100 hover:text-hijau transition;
+}
+
+.menu-link.active {
+  @apply bg-green-200 text-hijau font-semibold;
+}

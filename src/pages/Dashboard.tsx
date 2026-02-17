@@ -1,8 +1,21 @@
 import { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import api from "../api/axios";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { FaUsers, FaCheckCircle, FaFileAlt, FaTimesCircle } from "react-icons/fa";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
+
+import {
+  FaUsers,
+  FaCheckCircle,
+  FaFileAlt,
+  FaTimesCircle,
+} from "react-icons/fa";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -21,14 +34,10 @@ export default function DashboardPage() {
     { name: "Draft", value: stats?.draft ?? 0 },
     { name: "Rejected", value: stats?.rejected ?? 0 },
     { name: "Submitted", value: stats?.submitted ?? 0 },
-  ];
-
+  ].filter((item) => item.value > 0);
   return (
     <div>
-      <PageHeader
-        title="Dashboard"
-        breadcrumb="Dashboard / Overview"
-      />
+      <PageHeader title="Dashboard" breadcrumb="Dashboard / Overview" />
 
       {/* STAT CARDS */}
       <div className="grid md:grid-cols-4 gap-6 mt-6">
@@ -62,14 +71,27 @@ export default function DashboardPage() {
       <div className="bg-white p-6 rounded-xl shadow mt-8">
         <h2 className="text-lg font-semibold mb-4">Status Distribution</h2>
 
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={350}>
           <PieChart>
-            <Pie data={chartData} dataKey="value" outerRadius={100}>
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={70}
+              outerRadius={120}
+              paddingAngle={4}
+              label={({ percent = 0 }: { percent?: number }) =>
+                `${(percent * 100).toFixed(0)}%`
+              }
+            >
               <Cell fill="#00B074" />
               <Cell fill="#3b82f6" />
               <Cell fill="#f59e0b" />
               <Cell fill="#ef4444" />
             </Pie>
+
+            <Tooltip />
+            <Legend verticalAlign="bottom" height={36} />
           </PieChart>
         </ResponsiveContainer>
       </div>
