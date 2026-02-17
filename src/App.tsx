@@ -1,24 +1,22 @@
+import { Routes, Route } from "react-router-dom";
+import Sidebar from "./layouts/Sidebar";
+import Header from "./layouts/Header";
+import Dashboard from "./pages/Dashboard";
 import EnrollmentsPage from "./pages/EnrollmentsPage";
 
-function App() {
+export default function App() {
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Navbar */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold text-gray-800">
-            Sistem Akademik
-          </h1>
-          <span className="text-sm text-gray-500">Dashboard KRS</span>
-        </div>
-      </header>
+    <div id="layout-wrapper" className="flex flex-row flex-1">
+      <Sidebar />
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto p-6">
-        <EnrollmentsPage />
-      </main>
+      <div id="main-content" className="flex-1 p-6">
+        <Header />
+
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/enrollments" element={<EnrollmentsPage />} />
+        </Routes>
+      </div>
     </div>
   );
 }
-
-export default App;

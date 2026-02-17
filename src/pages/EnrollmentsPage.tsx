@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import type { Enrollment } from "../types/enrollment";
+import PageHeader from "../components/PageHeader";
 
 export default function EnrollmentsPage() {
   const [data, setData] = useState<Enrollment[]>([]);
@@ -8,159 +9,97 @@ export default function EnrollmentsPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [loading, setLoading] = useState(false);
-
+  const [semesterFilter, setSemesterFilter] = useState("");
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState("enrollments.id");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const pageSize = 10;
 
   const fetchData = async () => {
-    try {
-      setLoading(true);
+    const res = await api.get("/enrollments", {
+      params: {
+        page,
+        page_size: pageSize,
+        search,
+        filters: [
+          ...(statusFilter
+            ? [{ field: "enrollments.status", operator: "equal", value: statusFilter }]
+            : []),
+          ...(semesterFilter
+            ? [{ field: "enrollments.semester", operator: "equal", value: semesterFilter }]
+            : []),
+        ],
+      },
+    });
 
-      const res = await api.get("/enrollments", {
-        params: {
-          page: page,
-          page_size: pageSize,
-          search: search,
-          sort_by: sortBy,
-          sort_dir: sortDir,
-          filters: statusFilter
-            ? [
-                {
-                  field: "enrollments.status",
-                  operator: "equal",
-                  value: statusFilter,
-                },
-              ]
-            : [],
-        },
-      });
-
-      setData(res.data.data);
-      setPagination(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    setData(res.data.data);
+    setPagination(res.data);
   };
 
   useEffect(() => {
     fetchData();
-  }, [page, search, statusFilter, sortBy, sortDir]);
-
-  const toggleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortDir(sortDir === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortDir("asc");
-    }
-  };
+  }, [page, search, statusFilter, semesterFilter]);
 
   const handleExport = () => {
     window.open("http://127.0.0.1:8000/api/enrollments/export", "_blank");
   };
 
   return (
-    <div className="p-10 bg-gray-100 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Data KRS</h1>
-
-        <button
-          onClick={handleExport}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          Export CSV
-        </button>
-      </div>
+    <div>
+      <PageHeader
+        title="Enrollments"
+        breadcrumb="Dashboard / Enrollments"
+        buttonLabel="Export CSV"
+      />
 
       {/* FILTER */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex gap-4 mt-6">
         <input
-          type="text"
-          placeholder="Cari NIM / Nama..."
-          value={search}
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-          className="border rounded-lg px-4 py-2 w-64 focus:ring-2 focus:ring-blue-500"
+          placeholder="Search NIM / Name"
+          className="border px-4 py-2 rounded-lg"
+          onChange={(e) => setSearch(e.target.value)}
         />
 
         <select
-          value={statusFilter}
-          onChange={(e) => {
-            setPage(1);
-            setStatusFilter(e.target.value);
-          }}
-          className="border rounded-lg px-4 py-2"
+          className="border px-4 py-2 rounded-lg"
+          onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="">Semua Status</option>
+          <option value="">All Status</option>
           <option value="DRAFT">DRAFT</option>
           <option value="SUBMITTED">SUBMITTED</option>
           <option value="APPROVED">APPROVED</option>
           <option value="REJECTED">REJECTED</option>
         </select>
+
+        <select
+          className="border px-4 py-2 rounded-lg"
+          onChange={(e) => setSemesterFilter(e.target.value)}
+        >
+          <option value="">All Semester</option>
+          <option value="GANJIL">GANJIL</option>
+          <option value="GENAP">GENAP</option>
+        </select>
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        {loading && (
-          <div className="p-6 text-center text-gray-500">
-            Loading data...
-          </div>
-        )}
-
+      <div className="bg-white rounded-xl shadow mt-6 overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-100">
             <tr>
-              <th
-                className="p-4 cursor-pointer"
-                onClick={() => toggleSort("students.nim")}
-              >
-                NIM
-              </th>
-              <th
-                className="p-4 cursor-pointer"
-                onClick={() => toggleSort("students.name")}
-              >
-                Nama
-              </th>
-              <th className="p-4">Kode MK</th>
-              <th
-                className="p-4 cursor-pointer"
-                onClick={() => toggleSort("enrollments.status")}
-              >
-                Status
-              </th>
+              <th className="p-4 text-left">NIM</th>
+              <th className="p-4 text-left">Name</th>
+              <th className="p-4 text-left">Course</th>
+              <th className="p-4 text-left">Semester</th>
+              <th className="p-4 text-left">Status</th>
             </tr>
           </thead>
-
           <tbody>
             {data.map((row) => (
-              <tr key={row.id} className="border-t">
+              <tr key={row.id} className="border-t hover:bg-gray-50">
                 <td className="p-4">{row.nim}</td>
                 <td className="p-4">{row.student_name}</td>
                 <td className="p-4">{row.course_code}</td>
-                <td className="p-4">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      row.status === "APPROVED"
-                        ? "bg-green-100 text-green-700"
-                        : row.status === "REJECTED"
-                        ? "bg-red-100 text-red-700"
-                        : row.status === "SUBMITTED"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {row.status}
-                  </span>
-                </td>
+                <td className="p-4">{row.semester}</td>
+                <td className="p-4 font-medium">{row.status}</td>
               </tr>
             ))}
           </tbody>
@@ -169,23 +108,23 @@ export default function EnrollmentsPage() {
 
       {/* PAGINATION */}
       {pagination && (
-        <div className="flex justify-between items-center mt-6">
+        <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-xl shadow">
           <button
             disabled={!pagination.prev_page_url}
             onClick={() => setPage(page - 1)}
-            className="px-4 py-2 border rounded disabled:opacity-40"
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-40"
           >
             Prev
           </button>
 
-          <span>
+          <span className="font-semibold">
             Page {pagination.current_page}
           </span>
 
           <button
             disabled={!pagination.next_page_url}
             onClick={() => setPage(page + 1)}
-            className="px-4 py-2 border rounded disabled:opacity-40"
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-40"
           >
             Next
           </button>
