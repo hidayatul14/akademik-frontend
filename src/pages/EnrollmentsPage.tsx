@@ -68,7 +68,7 @@ export default function EnrollmentsPage() {
   };
 
   const handleExport = () => {
-    window.open("http://127.0.0.1:8000/api/enrollments/export", "_blank");
+    window.open("https://akademik-api-production.up.railway.app/api/enrollments/export", "_blank");
   };
 
   const toggleSort = (field: string) => {
