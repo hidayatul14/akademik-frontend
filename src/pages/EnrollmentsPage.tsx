@@ -17,17 +17,19 @@ export default function EnrollmentsPage() {
   const [semesterFilter, setSemesterFilter] = useState("");
   const [page, setPage] = useState(1);
 
+  const [sorts, setSorts] = useState<{ field: string; dir: "asc" | "desc" }[]>(
+    [],
+  );
+
   const [openModal, setOpenModal] = useState(false);
   const [editData, setEditData] = useState<Enrollment | null>(null);
-
-  const [useExistingStudent, setUseExistingStudent] = useState(false);
-  const [useExistingCourse, setUseExistingCourse] = useState(false);
 
   const fetchData = async () => {
     const res = await api.get("/enrollments", {
       params: {
         page,
         search,
+        sorts,
         filters: [
           ...(statusFilter
             ? [
@@ -57,7 +59,7 @@ export default function EnrollmentsPage() {
 
   useEffect(() => {
     fetchData();
-  }, [page, search, statusFilter, semesterFilter]);
+  }, [page, search, statusFilter, semesterFilter, sorts]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure?")) return;
@@ -67,6 +69,24 @@ export default function EnrollmentsPage() {
 
   const handleExport = () => {
     window.open("http://127.0.0.1:8000/api/enrollments/export", "_blank");
+  };
+
+  const toggleSort = (field: string) => {
+    setSorts((prev) => {
+      const existing = prev.find((s) => s.field === field);
+
+      if (!existing) {
+        return [...prev, { field, dir: "asc" }];
+      }
+
+      if (existing.dir === "asc") {
+        return prev.map((s) => (s.field === field ? { ...s, dir: "desc" } : s));
+      }
+
+      return prev.filter((s) => s.field !== field);
+    });
+
+    setPage(1);
   };
 
   return (
@@ -92,7 +112,7 @@ export default function EnrollmentsPage() {
 
           <button
             onClick={() => setOpenModal(true)}
-            className="bg-hijau text-white px-4 py-2 rounded-lg hover:opacity-90"
+            className="bg-hijau text-white px-4 py-2 rounded-lg"
           >
             + Add Enrollment
           </button>
@@ -106,6 +126,8 @@ export default function EnrollmentsPage() {
           setOpenModal(true);
         }}
         onDelete={handleDelete}
+        sorts={sorts}
+        onSort={toggleSort}
       />
 
       <EnrollmentPagination

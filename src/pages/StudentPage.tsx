@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import PageHeader from "../components/PageHeader";
+import StudentModal from "../components/students/StudentModal";
 
 export default function StudentsPage() {
   const [data, setData] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  const [openModal, setOpenModal] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
 
   const fetchData = async () => {
     const res = await api.get("/students", {
@@ -24,6 +28,18 @@ export default function StudentsPage() {
     fetchData();
   }, [search, page]);
 
+  const handleEdit = (row: any) => {
+    setEditData(row);
+    setOpenModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure want to delete this student?")) return;
+
+    await api.delete(`/students/${id}`);
+    fetchData();
+  };
+
   return (
     <div>
       <PageHeader
@@ -31,8 +47,8 @@ export default function StudentsPage() {
         breadcrumb="Dashboard / Students"
       />
 
-      {/* SEARCH */}
-      <div className="mt-6">
+      {/* SEARCH + ADD BUTTON */}
+      <div className="mt-6 flex justify-between items-center">
         <input
           placeholder="Search NIM / Name / Email"
           className="border px-4 py-2 rounded-lg w-80"
@@ -41,6 +57,16 @@ export default function StudentsPage() {
             setSearch(e.target.value);
           }}
         />
+
+        <button
+          onClick={() => {
+            setEditData(null);
+            setOpenModal(true);
+          }}
+          className="bg-hijau text-white px-4 py-2 rounded-lg"
+        >
+          + Add Student
+        </button>
       </div>
 
       {/* TABLE */}
@@ -51,6 +77,7 @@ export default function StudentsPage() {
               <th className="p-4 text-left">NIM</th>
               <th className="p-4 text-left">Name</th>
               <th className="p-4 text-left">Email</th>
+              <th className="p-4 text-left">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -59,6 +86,21 @@ export default function StudentsPage() {
                 <td className="p-4">{row.nim}</td>
                 <td className="p-4">{row.name}</td>
                 <td className="p-4">{row.email}</td>
+                <td className="p-4 space-x-2">
+                  <button
+                    onClick={() => handleEdit(row)}
+                    className="px-3 py-1 bg-blue-500 text-white rounded"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(row.id)}
+                    className="px-3 py-1 bg-red-500 text-white rounded"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -89,6 +131,17 @@ export default function StudentsPage() {
           </button>
         </div>
       )}
+
+      {/* MODAL */}
+      <StudentModal
+        open={openModal}
+        onClose={() => {
+          setOpenModal(false);
+          setEditData(null);
+        }}
+        editData={editData}
+        refresh={fetchData}
+      />
     </div>
   );
 }

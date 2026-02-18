@@ -21,10 +21,15 @@ export default function CourseModal({
   });
 
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (editData) {
-      setForm(editData);
+      setForm({
+        code: editData.code,
+        name: editData.name,
+        credits: editData.credits,
+      });
     } else {
       setForm({
         code: "",
@@ -38,6 +43,7 @@ export default function CourseModal({
 
   const handleSubmit = async () => {
     try {
+      setLoading(true);
       setErrors({});
 
       if (editData) {
@@ -54,6 +60,8 @@ export default function CourseModal({
       } else {
         alert("Unexpected error occurred.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,18 +72,21 @@ export default function CourseModal({
           {editData ? "Edit Course" : "Add Course"}
         </h2>
 
+        {/* CODE */}
         <div>
           <input
             placeholder="Course Code"
             className="border w-full p-2 rounded"
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value })}
+            disabled={!!editData} // disable code saat edit
           />
           {errors.code && (
             <p className="text-red-500 text-sm">{errors.code[0]}</p>
           )}
         </div>
 
+        {/* NAME */}
         <div>
           <input
             placeholder="Course Name"
@@ -88,6 +99,7 @@ export default function CourseModal({
           )}
         </div>
 
+        {/* CREDITS */}
         <div>
           <input
             type="number"
@@ -103,19 +115,21 @@ export default function CourseModal({
           )}
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={onClose}
             className="px-4 py-2 border rounded"
+            disabled={loading}
           >
             Cancel
           </button>
 
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 bg-hijau text-white rounded hover:opacity-90"
+            disabled={loading}
+            className="px-4 py-2 bg-hijau text-white rounded hover:opacity-90 disabled:opacity-50"
           >
-            Save
+            {loading ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
