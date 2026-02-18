@@ -1,73 +1,131 @@
-# React + TypeScript + Vite
+🎓 Enrollment Academic System
+Full-stack Academic Enrollment Management System built using:
+Backend: Laravel (PHP 8.4.12)
+Frontend: React + Vite + TypeScript
+Database: PostgreSQL
+Styling: Tailwind CSS
+This project was developed as a technical test to demonstrate scalable backend architecture, efficient database design, and clean frontend implementation.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🚀 Overview
+Enrollment Academic System is designed to manage:
+Students
+Courses
+Enrollments
+Real-time Dashboard Analytics
+CSV Export for large datasets
+The system supports large-scale data (millions of enrollment records) with optimized query performance.
 
-Currently, two official plugins are available:
+🛠 Tech Stack
+Backend :
+Laravel
+PHP 8.4.12
+PostgreSQL
+Eloquent ORM
+Database Transactions
+Chunked CSV Streaming
+Advanced Filtering Engine
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Frontend :
+React (Vite)
+TypeScript
+Tailwind CSS
+Recharts (Data Visualization)
+React Icons
+Axios
 
-## React Compiler
+✨ Features
+<img width="1919" height="1086" alt="image" src="https://github.com/user-attachments/assets/eed3c1cb-66f8-403a-9119-84743a307eeb" />
+📊 Dashboard
+Total Enrollment count
+Approved / Draft / Rejected / Submitted stats
+Pie chart status distribution
+Real-time stats API
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+<img width="1918" height="1075" alt="image" src="https://github.com/user-attachments/assets/d37510f4-4409-44e2-b049-7e09e11680cd" />
+📋 Enrollment Management
+Server-side pagination
+Advanced filtering (Status, Semester)
+Global search (NIM, Student Name, Course Code)
+Dynamic sorting per column
+Create enrollment (new or existing Student/Course)
+Edit enrollment
+Soft delete
+CSV export (streamed for performance)
 
-## Expanding the ESLint configuration
+<img width="1919" height="1087" alt="image" src="https://github.com/user-attachments/assets/2736a5ac-8211-4b02-a056-6600499eb2c8" />
+👨‍🎓 Student Management
+Full CRUD
+Search by NIM / Name / Email
+Modal-based create/edit
+Pagination
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+<img width="1919" height="1082" alt="image" src="https://github.com/user-attachments/assets/21352218-f0bf-4845-8b1c-2ad40042c916" />
+📚 Course Management
+Full CRUD
+Search by Code / Name
+Modal-based create/edit
+Pagination
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+🧪 API Endpoints
+Enrollment
+GET    /api/enrollments
+POST   /api/enrollments
+PUT    /api/enrollments/{id}
+DELETE /api/enrollments/{id}
+GET    /api/enrollments/export
+GET    /api/enrollments/stats
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Students
+GET    /api/students
+POST   /api/students
+PUT    /api/students/{id}
+DELETE /api/students/{id}
+GET    /api/students/search
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Courses
+GET    /api/courses
+POST   /api/courses
+PUT    /api/courses/{id}
+DELETE /api/courses/{id}
+GET    /api/courses/search
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+🔧 Installation Guide
+Backend Setup
+composer install
+cp .env.example .env
+php artisan key:generate
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Update .env for PostgreSQL:
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=your_database
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Run migration & seeder:
+php artisan migrate --seed
+
+Start backend:
+php artisan serve
+
+Frontend Setup
+npm install
+npm run dev
+
+📊 CSV Export
+Streamed response
+Memory efficient
+Handles large datasets
+Chunked database reading
+
+🔐 Data Integrity Strategy
+Enrollment creation logic:
+If student_id exists → use existing student
+If not → auto create/update student
+Same logic applied to course
+All wrapped in database transaction
+Ensures:
+No duplicate records
+Atomic operations
+Data consistency
