@@ -1,101 +1,131 @@
-import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
-import type { Enrollment } from "../../types/enrollment";
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, Inbox, Pencil, Trash2 } from "lucide-react";
+import type { Enrollment, EnrollmentSort } from "../../types/enrollment";
 
 interface Props {
   data: Enrollment[];
-  onEdit: (row: Enrollment) => void;
+  error: string | null;
+  loading: boolean;
+  sorts: EnrollmentSort[];
   onDelete: (id: number) => void;
-  sorts: { field: string; dir: "asc" | "desc" }[];
+  onEdit: (row: Enrollment) => void;
+  onRetry: () => void;
   onSort: (field: string) => void;
 }
 
-export default function EnrollmentTable({
-  data,
-  onEdit,
-  onDelete,
-  sorts,
-  onSort,
-}: Props) {
-  const renderSortIcon = (field: string) => {
-    const index = sorts.findIndex((s) => s.field === field);
-    if (index === -1)
-      return <FaSort className="inline ml-2 text-gray-400 text-sm" />;
+const columns = [
+  { field: "student_nim", label: "NIM" },
+  { field: "student_name", label: "Student" },
+  { field: "course_code", label: "Course code" },
+  { field: "course_name", label: "Course name" },
+  { field: "academic_year", label: "Academic year" },
+  { field: "semester", label: "Semester" },
+  { field: "status", label: "Status" },
+];
 
-    const dir = sorts[index].dir;
+const statusClasses: Record<Enrollment["status"], string> = {
+  DRAFT: "bg-gray-100 text-gray-700 ring-gray-200",
+  SUBMITTED: "bg-blue-50 text-blue-700 ring-blue-200",
+  APPROVED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  REJECTED: "bg-red-50 text-red-700 ring-red-200",
+};
 
-    return dir === "asc" ? (
-      <FaSortUp className="inline ml-2 text-hijau text-sm" />
-    ) : (
-      <FaSortDown className="inline ml-2 text-hijau text-sm" />
-    );
+export default function EnrollmentTable({ data, error, loading, sorts, onDelete, onEdit, onRetry, onSort }: Props) {
+  const sortState = (field: string) => {
+    const index = sorts.findIndex((sort) => sort.field === field);
+    return index === -1 ? null : { ...sorts[index], priority: index + 1 };
   };
 
   return (
-    <div className="bg-white rounded-xl shadow mt-6 overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-gray-100">
-          <tr>
-            <th
-              className="p-4 text-left cursor-pointer select-none hover:text-hijau"
-              onClick={() => onSort("students.nim")}
-            >
-              NIM {renderSortIcon("students.nim")}
-            </th>
-
-            <th
-              className="p-4 text-left cursor-pointer select-none hover:text-hijau"
-              onClick={() => onSort("students.name")}
-            >
-              Name {renderSortIcon("students.name")}
-            </th>
-
-            <th
-              className="p-4 text-left cursor-pointer select-none hover:text-hijau"
-              onClick={() => onSort("courses.code")}
-            >
-              Course {renderSortIcon("courses.code")}
-            </th>
-
-            <th className="p-4 text-left">Semester</th>
-
-            <th
-              className="p-4 text-left cursor-pointer select-none hover:text-hijau"
-              onClick={() => onSort("enrollments.status")}
-            >
-              Status {renderSortIcon("enrollments.status")}
-            </th>
-
-            <th className="p-4">Action</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {data.map((row) => (
-            <tr key={row.id} className="border-t hover:bg-gray-50">
-              <td className="p-4">{row.nim}</td>
-              <td className="p-4">{row.student_name}</td>
-              <td className="p-4">{row.course_code}</td>
-              <td className="p-4">{row.semester}</td>
-              <td className="p-4">{row.status}</td>
-              <td className="p-4 space-x-2">
-                <button
-                  onClick={() => onEdit(row)}
-                  className="px-3 py-1 bg-blue-500 text-white rounded"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => onDelete(row.id)}
-                  className="px-3 py-1 bg-red-500 text-white rounded"
-                >
-                  Delete
-                </button>
-              </td>
+    <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1120px] border-collapse">
+          <thead className="bg-slate-50">
+            <tr>
+              {columns.map((column) => {
+                const activeSort = sortState(column.field);
+                return (
+                  <th key={column.field} scope="col" className="border-b border-gray-200 px-4 py-3 text-left">
+                    <button
+                      type="button"
+                      onClick={() => onSort(column.field)}
+                      className="group inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 transition hover:text-gray-900 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hijau"
+                      aria-label={`Sort by ${column.label}`}
+                    >
+                      {column.label}
+                      {activeSort?.dir === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-hijau" />
+                      ) : activeSort?.dir === "desc" ? (
+                        <ArrowDown className="h-3.5 w-3.5 text-hijau" />
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-gray-300 group-hover:text-gray-500" />
+                      )}
+                      {activeSort && sorts.length > 1 && (
+                        <span className="rounded bg-green-50 px-1 text-[10px] text-hijau">{activeSort.priority}</span>
+                      )}
+                    </button>
+                  </th>
+                );
+              })}
+              <th scope="col" className="border-b border-gray-200 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Actions
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody className="divide-y divide-gray-100">
+            {loading && Array.from({ length: 7 }).map((_, row) => (
+              <tr key={row} aria-hidden="true">
+                {Array.from({ length: 8 }).map((__, cell) => (
+                  <td key={cell} className="px-4 py-4"><div className="h-4 animate-pulse rounded bg-gray-100" /></td>
+                ))}
+              </tr>
+            ))}
+
+            {!loading && !error && data.map((row) => (
+              <tr key={row.id} className="transition hover:bg-gray-50/80">
+                <td className="whitespace-nowrap px-4 py-4 font-mono text-sm font-medium text-gray-900">{row.nim}</td>
+                <td className="px-4 py-4 text-sm font-medium text-gray-800">{row.student_name}</td>
+                <td className="whitespace-nowrap px-4 py-4 font-mono text-sm text-gray-700">{row.course_code}</td>
+                <td className="px-4 py-4 text-sm text-gray-700">{row.course_name}</td>
+                <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-600">{row.academic_year}</td>
+                <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-600">{row.semester}</td>
+                <td className="whitespace-nowrap px-4 py-4">
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusClasses[row.status]}`}>
+                    {row.status}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-4 py-4 text-right">
+                  <div className="inline-flex gap-1">
+                    <button type="button" onClick={() => onEdit(row)} aria-label={`Edit enrollment for ${row.nim}`} className="rounded-lg p-2 text-gray-500 transition hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button type="button" onClick={() => onDelete(row.id)} aria-label={`Delete enrollment for ${row.nim}`} className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {!loading && error && (
+        <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
+          <span className="rounded-full bg-red-50 p-3 text-red-600"><AlertCircle className="h-6 w-6" /></span>
+          <h3 className="mt-4 font-semibold text-gray-900">Unable to load enrollments</h3>
+          <p className="mt-1 max-w-md text-sm text-gray-500">{error}</p>
+          <button type="button" onClick={onRetry} className="mt-4 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-50">Try again</button>
+        </div>
+      )}
+
+      {!loading && !error && data.length === 0 && (
+        <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
+          <span className="rounded-full bg-gray-100 p-3 text-gray-500"><Inbox className="h-6 w-6" /></span>
+          <h3 className="mt-4 font-semibold text-gray-900">No enrollment records found</h3>
+          <p className="mt-1 text-sm text-gray-500">Try adjusting your filters or create a new enrollment.</p>
+        </div>
+      )}
     </div>
   );
 }

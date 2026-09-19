@@ -1,138 +1,98 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { isAxiosError } from "axios";
+import { LoaderCircle } from "lucide-react";
 import api from "../../api/axios";
+import type { Course } from "../../types/catalog";
+import ModalShell from "../ui/ModalShell";
 
 interface Props {
-  open: boolean;
+  editData: Course | null;
   onClose: () => void;
-  editData: any;
-  refresh: () => void;
+  onSuccess: (message: string) => void;
 }
 
-export default function CourseModal({
-  open,
-  onClose,
-  editData,
-  refresh,
-}: Props) {
-  const [form, setForm] = useState({
-    code: "",
-    name: "",
-    credits: 3,
-  });
+type Form = Omit<Course, "id">;
+type Errors = Partial<Record<keyof Form | "form", string>>;
 
-  const [errors, setErrors] = useState<Record<string, string[]>>({});
-  const [loading, setLoading] = useState(false);
+const fieldClass = "mt-1.5 h-11 w-full rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100";
 
-  useEffect(() => {
-    if (editData) {
-      setForm({
-        code: editData.code,
-        name: editData.name,
-        credits: editData.credits,
-      });
-    } else {
-      setForm({
-        code: "",
-        name: "",
-        credits: 3,
-      });
+export default function CourseModal({ editData, onClose, onSuccess }: Props) {
+  const [form, setForm] = useState<Form>(() => ({
+    code: editData?.code ?? "",
+    name: editData?.name ?? "",
+    credits: editData?.credits ?? 3,
+  }));
+  const [errors, setErrors] = useState<Errors>({});
+  const [busy, setBusy] = useState(false);
+
+  const update = <K extends keyof Form>(field: K, value: Form[K]) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
+  };
+
+  const validate = (): Errors => {
+    const next: Errors = {};
+    if (!/^[A-Z]{2,4}[0-9]{3}$/.test(form.code)) next.code = "Use 2–4 uppercase letters followed by 3 digits.";
+    if (form.name.trim().length < 3 || form.name.trim().length > 120) next.name = "Name must be 3–120 characters.";
+    if (!Number.isInteger(form.credits) || form.credits < 1 || form.credits > 6) next.credits = "Credits must be an integer from 1 to 6.";
+    return next;
+  };
+
+  const submit = async () => {
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length) {
+      setErrors(validationErrors);
+      return;
     }
-  }, [editData]);
 
-  if (!open) return null;
-
-  const handleSubmit = async () => {
+    setBusy(true);
     try {
-      setLoading(true);
-      setErrors({});
-
-      if (editData) {
-        await api.put(`/courses/${editData.id}`, form);
+      if (editData) await api.put(`/courses/${editData.id}`, form);
+      else await api.post("/courses", form);
+      onSuccess(editData ? "Course updated successfully." : "Course created successfully.");
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 422 && error.response.data?.errors) {
+        const mapped: Errors = {};
+        Object.entries(error.response.data.errors as Record<string, string[]>).forEach(([key, messages]) => {
+          mapped[key as keyof Form] = messages[0];
+        });
+        setErrors(mapped);
       } else {
-        await api.post("/courses", form);
-      }
-
-      refresh();
-      onClose();
-    } catch (err: any) {
-      if (err.response?.status === 422) {
-        setErrors(err.response.data.errors);
-      } else {
-        alert("Unexpected error occurred.");
+        setErrors({ form: "Course data could not be saved. Please try again." });
       }
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
+  const footer = (
+    <>
+      <button type="button" disabled={busy} onClick={onClose} className="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+      <button type="button" disabled={busy} onClick={submit} className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
+        {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
+        {busy ? "Saving..." : "Save course"}
+      </button>
+    </>
+  );
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/20 z-50">
-      <div className="bg-white w-[500px] p-6 rounded-xl space-y-4 shadow-xl">
-        <h2 className="text-xl font-semibold">
-          {editData ? "Edit Course" : "Add Course"}
-        </h2>
-
-        {/* CODE */}
-        <div>
-          <input
-            placeholder="Course Code"
-            className="border w-full p-2 rounded"
-            value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value })}
-            disabled={!!editData} // disable code saat edit
-          />
-          {errors.code && (
-            <p className="text-red-500 text-sm">{errors.code[0]}</p>
-          )}
-        </div>
-
-        {/* NAME */}
-        <div>
-          <input
-            placeholder="Course Name"
-            className="border w-full p-2 rounded"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-          {errors.name && (
-            <p className="text-red-500 text-sm">{errors.name[0]}</p>
-          )}
-        </div>
-
-        {/* CREDITS */}
-        <div>
-          <input
-            type="number"
-            placeholder="Credits"
-            className="border w-full p-2 rounded"
-            value={form.credits}
-            onChange={(e) =>
-              setForm({ ...form, credits: Number(e.target.value) })
-            }
-          />
-          {errors.credits && (
-            <p className="text-red-500 text-sm">{errors.credits[0]}</p>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border rounded"
-            disabled={loading}
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-4 py-2 bg-hijau text-white rounded hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </div>
-    </div>
+    <ModalShell busy={busy} eyebrow="Course master" title={editData ? "Edit course" : "Add course"} titleId="course-modal-title" footer={footer} onClose={onClose}>
+      {errors.form && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{errors.form}</p>}
+      <label className="block text-sm font-medium text-slate-700">
+        Course code <span className="text-red-500">*</span>
+        <input disabled={Boolean(editData)} value={form.code} onChange={(event) => update("code", event.target.value.toUpperCase().replace(/\s/g, ""))} className={fieldClass} />
+        {errors.code && <span className="mt-1 block text-xs text-red-600">{errors.code}</span>}
+      </label>
+      <label className="block text-sm font-medium text-slate-700">
+        Course name <span className="text-red-500">*</span>
+        <input value={form.name} onChange={(event) => update("name", event.target.value)} className={fieldClass} />
+        {errors.name && <span className="mt-1 block text-xs text-red-600">{errors.name}</span>}
+      </label>
+      <label className="block text-sm font-medium text-slate-700">
+        Credits <span className="text-red-500">*</span>
+        <input type="number" min={1} max={6} value={form.credits} onChange={(event) => update("credits", Number(event.target.value))} className={fieldClass} />
+        {errors.credits && <span className="mt-1 block text-xs text-red-600">{errors.credits}</span>}
+      </label>
+    </ModalShell>
   );
 }

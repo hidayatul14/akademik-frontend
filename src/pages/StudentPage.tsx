@@ -1,147 +1,133 @@
 import { useEffect, useState } from "react";
+import { Inbox, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import api from "../api/axios";
 import PageHeader from "../components/PageHeader";
 import StudentModal from "../components/students/StudentModal";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
+import MasterDataPagination from "../components/ui/MasterDataPagination";
+import Toast from "../components/ui/Toast";
+import useAutoDismissToast from "../hooks/useAutoDismissToast";
+import useDebouncedValue from "../hooks/useDebouncedValue";
+import type { PaginatedResponse, Student } from "../types/catalog";
 
 export default function StudentsPage() {
-  const [data, setData] = useState<any[]>([]);
-  const [pagination, setPagination] = useState<any>(null);
+  const [data, setData] = useState<Student[]>([]);
+  const [pagination, setPagination] = useState<PaginatedResponse<Student> | null>(null);
   const [search, setSearch] = useState("");
+  const query = useDebouncedValue(search);
   const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [editData, setEditData] = useState<Student | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast, setToast } = useAutoDismissToast();
 
-  const [openModal, setOpenModal] = useState(false);
-  const [editData, setEditData] = useState<any>(null);
-
-  const fetchData = async () => {
-    const res = await api.get("/students", {
-      params: {
-        search,
-        page,
-      },
-    });
-
-    setData(res.data.data);
-    setPagination(res.data);
-  };
+  useEffect(() => setPage(1), [query]);
 
   useEffect(() => {
-    fetchData();
-  }, [search, page]);
+    const controller = new AbortController();
 
-  const handleEdit = (row: any) => {
-    setEditData(row);
-    setOpenModal(true);
+    async function loadStudents() {
+      setLoading(true);
+      setError(false);
+      try {
+        const response = await api.get<PaginatedResponse<Student>>("/students", {
+          signal: controller.signal,
+          params: { search: query || undefined, page },
+        });
+        setData(response.data.data);
+        setPagination(response.data);
+      } catch {
+        if (!controller.signal.aborted) setError(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+
+    void loadStudents();
+    return () => controller.abort();
+  }, [page, query, refreshKey]);
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditData(null);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure want to delete this student?")) return;
+  const handleSaved = (message: string) => {
+    closeModal();
+    setToast({ id: Date.now(), type: "success", message });
+    setRefreshKey((value) => value + 1);
+  };
 
-    await api.delete(`/students/${id}`);
-    fetchData();
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/students/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      setToast({ id: Date.now(), type: "success", message: "Student deleted successfully." });
+      setRefreshKey((value) => value + 1);
+    } catch {
+      setToast({ id: Date.now(), type: "error", message: "Student could not be deleted. It may still be referenced by enrollments." });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
     <div>
-      <PageHeader
-        title="Students"
-        breadcrumb="Dashboard / Students"
-      />
+      <PageHeader title="Students" breadcrumb="Master Data / Students" description="Maintain verified student identities and contact information used across enrollment records." />
 
-      {/* SEARCH + ADD BUTTON */}
-      <div className="mt-6 flex justify-between items-center">
-        <input
-          placeholder="Search NIM / Name / Email"
-          className="border px-4 py-2 rounded-lg w-80"
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-        />
-
-        <button
-          onClick={() => {
-            setEditData(null);
-            setOpenModal(true);
-          }}
-          className="bg-hijau text-white px-4 py-2 rounded-lg"
-        >
-          + Add Student
+      <section className="mt-6 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <label className="relative w-full max-w-md">
+          <span className="sr-only">Search students</span>
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search NIM, name, or email..." className="h-11 w-full rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-100" />
+        </label>
+        <button type="button" onClick={() => setModalOpen(true)} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white hover:bg-emerald-800">
+          <Plus className="h-4 w-4" /> Add student
         </button>
-      </div>
+      </section>
 
-      {/* TABLE */}
-      <div className="bg-white rounded-xl shadow mt-6 overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-4 text-left">NIM</th>
-              <th className="p-4 text-left">Name</th>
-              <th className="p-4 text-left">Email</th>
-              <th className="p-4 text-left">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row) => (
-              <tr key={row.id} className="border-t hover:bg-gray-50">
-                <td className="p-4">{row.nim}</td>
-                <td className="p-4">{row.name}</td>
-                <td className="p-4">{row.email}</td>
-                <td className="p-4 space-x-2">
-                  <button
-                    onClick={() => handleEdit(row)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => handleDelete(row.id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded"
-                  >
-                    Delete
-                  </button>
-                </td>
+      <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px]">
+            <thead className="bg-slate-50">
+              <tr>
+                {["NIM", "Student name", "Email"].map((label) => <th key={label} className="border-b border-slate-200 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</th>)}
+                <th className="border-b border-slate-200 px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading && Array.from({ length: 6 }).map((_, row) => <tr key={row}>{Array.from({ length: 4 }).map((__, cell) => <td key={cell} className="px-5 py-4"><div className="h-4 animate-pulse rounded bg-slate-100" /></td>)}</tr>)}
+              {!loading && !error && data.map((student) => (
+                <tr key={student.id} className="hover:bg-slate-50">
+                  <td className="px-5 py-4 font-mono text-sm font-medium text-slate-900">{student.nim}</td>
+                  <td className="px-5 py-4 text-sm font-medium text-slate-800">{student.name}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{student.email}</td>
+                  <td className="px-5 py-4 text-right">
+                    <button type="button" onClick={() => { setEditData(student); setModalOpen(true); }} aria-label={`Edit ${student.name}`} className="rounded-md p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700"><Pencil className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => setDeleteTarget(student)} aria-label={`Delete ${student.name}`} className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!loading && (error || data.length === 0) && <EmptyState error={error} />}
       </div>
 
-      {/* PAGINATION */}
-      {pagination && (
-        <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-xl shadow">
-          <button
-            disabled={!pagination.prev_page_url}
-            onClick={() => setPage(page - 1)}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-40"
-          >
-            Prev
-          </button>
-
-          <span className="font-semibold">
-            Page {pagination.current_page}
-          </span>
-
-          <button
-            disabled={!pagination.next_page_url}
-            onClick={() => setPage(page + 1)}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
-
-      {/* MODAL */}
-      <StudentModal
-        open={openModal}
-        onClose={() => {
-          setOpenModal(false);
-          setEditData(null);
-        }}
-        editData={editData}
-        refresh={fetchData}
-      />
+      <MasterDataPagination pagination={pagination} loading={loading} onPageChange={setPage} />
+      {modalOpen && <StudentModal editData={editData} onClose={closeModal} onSuccess={handleSaved} />}
+      <ConfirmDialog open={Boolean(deleteTarget)} busy={deleting} title="Delete student?" description="Students referenced by enrollment records cannot be deleted. This action cannot be undone." onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
+}
+
+function EmptyState({ error }: { error: boolean }) {
+  return <div className="grid min-h-64 place-items-center p-6 text-center"><div><Inbox className="mx-auto h-7 w-7 text-slate-400" /><h3 className="mt-3 font-semibold text-slate-900">{error ? "Unable to load students" : "No students found"}</h3><p className="mt-1 text-sm text-slate-500">{error ? "Check the API connection and try again." : "Adjust your search or add a new student."}</p></div></div>;
 }

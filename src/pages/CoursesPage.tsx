@@ -1,147 +1,133 @@
 import { useEffect, useState } from "react";
+import { Inbox, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import api from "../api/axios";
-import PageHeader from "../components/PageHeader";
 import CourseModal from "../components/courses/CourseModal";
+import PageHeader from "../components/PageHeader";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
+import MasterDataPagination from "../components/ui/MasterDataPagination";
+import Toast from "../components/ui/Toast";
+import useAutoDismissToast from "../hooks/useAutoDismissToast";
+import useDebouncedValue from "../hooks/useDebouncedValue";
+import type { Course, PaginatedResponse } from "../types/catalog";
 
 export default function CoursesPage() {
-  const [data, setData] = useState<any[]>([]);
-  const [pagination, setPagination] = useState<any>(null);
+  const [data, setData] = useState<Course[]>([]);
+  const [pagination, setPagination] = useState<PaginatedResponse<Course> | null>(null);
   const [search, setSearch] = useState("");
+  const query = useDebouncedValue(search);
   const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [editData, setEditData] = useState<Course | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast, setToast } = useAutoDismissToast();
 
-  const [openModal, setOpenModal] = useState(false);
-  const [editData, setEditData] = useState<any>(null);
-
-  const fetchData = async () => {
-    const res = await api.get("/courses", {
-      params: {
-        search,
-        page,
-      },
-    });
-
-    setData(res.data.data);
-    setPagination(res.data);
-  };
+  useEffect(() => setPage(1), [query]);
 
   useEffect(() => {
-    fetchData();
-  }, [search, page]);
+    const controller = new AbortController();
 
-  const handleEdit = (row: any) => {
-    setEditData(row);
-    setOpenModal(true);
+    async function loadCourses() {
+      setLoading(true);
+      setError(false);
+      try {
+        const response = await api.get<PaginatedResponse<Course>>("/courses", {
+          signal: controller.signal,
+          params: { search: query || undefined, page },
+        });
+        setData(response.data.data);
+        setPagination(response.data);
+      } catch {
+        if (!controller.signal.aborted) setError(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+
+    void loadCourses();
+    return () => controller.abort();
+  }, [page, query, refreshKey]);
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditData(null);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure want to delete this course?")) return;
+  const handleSaved = (message: string) => {
+    closeModal();
+    setToast({ id: Date.now(), type: "success", message });
+    setRefreshKey((value) => value + 1);
+  };
 
-    await api.delete(`/courses/${id}`);
-    fetchData();
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/courses/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      setToast({ id: Date.now(), type: "success", message: "Course deleted successfully." });
+      setRefreshKey((value) => value + 1);
+    } catch {
+      setToast({ id: Date.now(), type: "error", message: "Course could not be deleted. It may still be referenced by enrollments." });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
     <div>
-      <PageHeader
-        title="Courses"
-        breadcrumb="Dashboard / Courses"
-      />
+      <PageHeader title="Courses" breadcrumb="Master Data / Courses" description="Maintain the course catalog used when creating enrollment records." />
 
-      {/* SEARCH + ADD BUTTON */}
-      <div className="mt-6 flex justify-between items-center">
-        <input
-          placeholder="Search Code / Name"
-          className="border px-4 py-2 rounded-lg w-80"
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
-        />
-
-        <button
-          onClick={() => {
-            setEditData(null);
-            setOpenModal(true);
-          }}
-          className="bg-hijau text-white px-4 py-2 rounded-lg"
-        >
-          + Add Course
+      <section className="mt-6 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <label className="relative w-full max-w-md">
+          <span className="sr-only">Search courses</span>
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search course code or name..." className="h-11 w-full rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-100" />
+        </label>
+        <button type="button" onClick={() => setModalOpen(true)} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white hover:bg-emerald-800">
+          <Plus className="h-4 w-4" /> Add course
         </button>
-      </div>
+      </section>
 
-      {/* TABLE */}
-      <div className="bg-white rounded-xl shadow mt-6 overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-4 text-left">Code</th>
-              <th className="p-4 text-left">Name</th>
-              <th className="p-4 text-left">Credits</th>
-              <th className="p-4 text-left">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row) => (
-              <tr key={row.id} className="border-t hover:bg-gray-50">
-                <td className="p-4">{row.code}</td>
-                <td className="p-4">{row.name}</td>
-                <td className="p-4">{row.credits}</td>
-                <td className="p-4 space-x-2">
-                  <button
-                    onClick={() => handleEdit(row)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => handleDelete(row.id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded"
-                  >
-                    Delete
-                  </button>
-                </td>
+      <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+            <thead className="bg-slate-50">
+              <tr>
+                {["Course code", "Course name", "Credits"].map((label) => <th key={label} className="border-b border-slate-200 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</th>)}
+                <th className="border-b border-slate-200 px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading && Array.from({ length: 6 }).map((_, row) => <tr key={row}>{Array.from({ length: 4 }).map((__, cell) => <td key={cell} className="px-5 py-4"><div className="h-4 animate-pulse rounded bg-slate-100" /></td>)}</tr>)}
+              {!loading && !error && data.map((course) => (
+                <tr key={course.id} className="hover:bg-slate-50">
+                  <td className="px-5 py-4 font-mono text-sm font-medium text-slate-900">{course.code}</td>
+                  <td className="px-5 py-4 text-sm font-medium text-slate-800">{course.name}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{course.credits} SKS</td>
+                  <td className="px-5 py-4 text-right">
+                    <button type="button" onClick={() => { setEditData(course); setModalOpen(true); }} aria-label={`Edit ${course.name}`} className="rounded-md p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700"><Pencil className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => setDeleteTarget(course)} aria-label={`Delete ${course.name}`} className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!loading && (error || data.length === 0) && <EmptyState error={error} />}
       </div>
 
-      {/* PAGINATION */}
-      {pagination && (
-        <div className="flex justify-between items-center mt-6 bg-white p-4 rounded-xl shadow">
-          <button
-            disabled={!pagination.prev_page_url}
-            onClick={() => setPage(page - 1)}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-40"
-          >
-            Prev
-          </button>
-
-          <span className="font-semibold">
-            Page {pagination.current_page}
-          </span>
-
-          <button
-            disabled={!pagination.next_page_url}
-            onClick={() => setPage(page + 1)}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
-
-      {/* MODAL */}
-      <CourseModal
-        open={openModal}
-        onClose={() => {
-          setOpenModal(false);
-          setEditData(null);
-        }}
-        editData={editData}
-        refresh={fetchData}
-      />
+      <MasterDataPagination pagination={pagination} loading={loading} onPageChange={setPage} />
+      {modalOpen && <CourseModal editData={editData} onClose={closeModal} onSuccess={handleSaved} />}
+      <ConfirmDialog open={Boolean(deleteTarget)} busy={deleting} title="Delete course?" description="Courses referenced by enrollment records cannot be deleted. This action cannot be undone." onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
+}
+
+function EmptyState({ error }: { error: boolean }) {
+  return <div className="grid min-h-64 place-items-center p-6 text-center"><div><Inbox className="mx-auto h-7 w-7 text-slate-400" /><h3 className="mt-3 font-semibold text-slate-900">{error ? "Unable to load courses" : "No courses found"}</h3><p className="mt-1 text-sm text-slate-500">{error ? "Check the API connection and try again." : "Adjust your search or add a new course."}</p></div></div>;
 }

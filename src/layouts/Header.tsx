@@ -1,48 +1,30 @@
-import { FaBell, FaSearch } from "react-icons/fa";
-import { FcAreaChart } from "react-icons/fc";
-import { SlSettings } from "react-icons/sl";
+import { Menu } from "lucide-react";
 
-export default function Header() {
-    return (
-        
-        <div id="header-container" className="flex justify-between items-center p-4 bg-white rounded-xl shadow-sm mb-6">
-            {/* Search Bar */}
-            <div id="search-bar" className="relative w-full max-w-lg">
-                <input
-                    id="search-input" className="border border-gray-100 p-2 pr-10 bg-white w-full max-w-lg rounded-md outline-none"
-                    type="text"
-                    placeholder="Search Here..."
-                />
-                <FaSearch id="search-icon" className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-300"/>
-            </div>
+interface Props {
+  onOpenNavigation: () => void;
+}
 
-            {/* Icon & Profile Section */}
-            <div id="icons-container" className="flex items-center space-x-4">
-                {/* Icons */}
-                <div id="notification-icon" className="relative p-3 bg-blue-100 rounded-2xl text-blue-500 cursor-pointer">
-                    <FaBell />
-                    <span id="notification-badge" className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-blue-200 rounded-full px-2 py-1 text-xs">50</span>
-                </div>
-                <div id="chart-icon" className="p-3 bg-blue-100 rounded-2xl cursor-pointer">
-                    <FcAreaChart />
-                </div>
-                <div id="settings-icon" className="p-3 bg-red-100 rounded-2xl text-red-500 cursor-pointer">
-                    <SlSettings />
-                </div>
-             
-
-                {/* Profile Section */}
-                <div id="profile-container" className="flex items-center space-x-4 border-l pl-4 border-gray-300">
-                    <span id="profile-text">
-                        Hello, <b>Hidayatul Mukmin</b>
-                    </span>
-                    <img
-                        id="profile-avatar"
-                        src="https://avatar.iran.liara.run/public/28"
-                        className="w-10 h-10 rounded-full"
-                    />
-                </div>
-            </div>
+export default function Header({ onOpenNavigation }: Props) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={onOpenNavigation} aria-label="Open navigation" className="rounded-md border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 lg:hidden">
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="hidden sm:block">
+            <p className="text-sm font-semibold text-slate-900">Academic Information System</p>
+            <p className="mt-0.5 text-xs text-slate-500">Politeknik Caltex Riau</p>
+          </div>
         </div>
-    );
+        <div className="flex items-center gap-3">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">OA</span>
+          <div className="hidden sm:block">
+            <p className="text-sm font-semibold text-slate-900">Academic Operator</p>
+            <p className="text-xs text-slate-500">Administration</p>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 }

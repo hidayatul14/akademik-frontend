@@ -1,135 +1,47 @@
-🎓 Enrollment Academic System
-Full-stack Academic Enrollment Management System built using:
+# Academic Enrollment Dashboard
 
-- Backend: Laravel (PHP 8.4.12)
-- Frontend: React + Vite + TypeScript
-- Database: PostgreSQL
-- Styling: Tailwind CSS
-This project was developed as a technical test to demonstrate scalable backend architecture, efficient database design, and clean frontend implementation.
+React 19 + TypeScript single-page interface for managing academic KRS records, students, and courses.
 
-🚀 Overview
-Enrollment Academic System is designed to manage:
-- Students
-- Courses
-- Enrollments
-- Real-time Dashboard Analytics
-- CSV Export for large datasets
-The system supports large-scale data (millions of enrollment records) with optimized query performance.
+## Features
 
-🛠 Tech Stack
-- Backend :
-Laravel
-PHP 8.4.12
-PostgreSQL
-Eloquent ORM
-Database Transactions
-Chunked CSV Streaming
-Advanced Filtering Engine
+- Server-side pagination with selectable page size and total records
+- Multi-column server-side sorting
+- Debounced server-side search
+- Quick filters for status and semester
+- Advanced multi-filter drawer with AND/OR logic
+- Atomic KRS create workflow for student, course, and enrollment data
+- Frontend and backend validation feedback
+- Filter-aware CSV export
+- Responsive tables, mobile navigation, skeletons, empty states, and error states
+- Accessible dialogs, focus styles, labels, and notifications
 
-- Frontend :
-React (Vite)
-TypeScript
-Tailwind CSS
-Recharts (Data Visualization)
-React Icons
-Axios
+## Local setup
 
-✨ Features
-<img width="1919" height="1086" alt="image" src="https://github.com/user-attachments/assets/eed3c1cb-66f8-403a-9119-84743a307eeb" />
-📊 Dashboard
-- Total Enrollment count
-- Approved / Draft / Rejected / Submitted stats
-- Pie chart status distribution
-- Real-time stats API
+```bash
+npm ci
+cp .env.example .env
+npm run dev -- --host 127.0.0.1 --port 5173
+```
 
-<img width="1918" height="1075" alt="image" src="https://github.com/user-attachments/assets/d37510f4-4409-44e2-b049-7e09e11680cd" />
-📋 Enrollment Management
+Configure the local API:
 
-- Server-side pagination
-- Advanced filtering (Status, Semester)
-- Global search (NIM, Student Name, Course Code)
-- Dynamic sorting per column
-- Create enrollment (new or existing Student/Course)
-- Edit enrollment
-- Soft delete
-- CSV export (streamed for performance)
+```dotenv
+VITE_API_BASE_URL=http://127.0.0.1:8000/api
+```
 
-<img width="1919" height="1087" alt="image" src="https://github.com/user-attachments/assets/2736a5ac-8211-4b02-a056-6600499eb2c8" />
-👨‍🎓 Student Management
+Open http://127.0.0.1:5173.
 
-- Full CRUD
-- Search by NIM / Name / Email
-- Modal-based create/edit
-- Pagination
+## Quality checks
 
-<img width="1919" height="1082" alt="image" src="https://github.com/user-attachments/assets/21352218-f0bf-4845-8b1c-2ad40042c916" />
-📚 Course Management
+```bash
+npm run lint
+npm run build
+```
 
-- Full CRUD
-- Search by Code / Name
-- Modal-based create/edit
-- Pagination
+Pages are route-level lazy loaded. Recharts is isolated in the dashboard chunk instead of increasing the initial application bundle.
 
-🧪 API Endpoints
-1. Enrollment
-- GET    /api/enrollments
-- POST   /api/enrollments
-- PUT    /api/enrollments/{id}
-- DELETE /api/enrollments/{id}
-- GET    /api/enrollments/export
-- GET    /api/enrollments/stats
+## Query behavior
 
-2. Students
-- GET    /api/students
-- POST   /api/students
-- PUT    /api/students/{id}
-- DELETE /api/students/{id}
-- GET    /api/students/search
+Search waits 400 ms before requesting data and resets pagination to page one. Stale Axios requests are cancelled. Quick and advanced filters are sent to the API; no dataset-wide filtering or sorting is performed in the browser.
 
-3. Courses
-- GET    /api/courses
-- POST   /api/courses
-- PUT    /api/courses/{id}
-- DELETE /api/courses/{id}
-- GET    /api/courses/search
-
-🔧 Installation Guide
-- Backend Setup
-- composer install
-- cp .env.example .env
-- php artisan key:generate
-
-Update .env for PostgreSQL:
-- DB_CONNECTION=pgsql
-- DB_HOST=127.0.0.1
-- DB_PORT=5432
-- DB_DATABASE=your_database
-- DB_USERNAME=your_username
-- DB_PASSWORD=your_password
-
-Run migration & seeder:
-- php artisan migrate --seed
-
-Start backend:
-- php artisan serve
-
-Frontend Setup :
-- npm install
-- npm run dev
-
-📊 CSV Export
-Streamed response
-Memory efficient
-Handles large datasets
-Chunked database reading
-
-🔐 Data Integrity Strategy
-Enrollment creation logic:
-- If student_id exists → use existing student
-- If not → auto create/update student
-- Same logic applied to course
-- All wrapped in database transaction
-Ensures:
-- No duplicate records
-- Atomic operations
-- Data consistency
+CSV export serializes the currently active search, quick filters, advanced conditions, and AND/OR logic, then lets the browser stream the file directly from the API.

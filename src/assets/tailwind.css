@@ -2,30 +2,58 @@
 
 @font-face {
   font-family: "Poppins";
-  src: url("../../public/fonts/Poppins-Bold.ttf") format("truetype");
+  src: url("/fonts/Poppins-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("/fonts/Poppins-Bold.ttf") format("truetype");
+  font-weight: 600 700;
+  font-display: swap;
 }
 
 @font-face {
   font-family: "Barlow";
   src: url("/fonts/Barlow-Regular.ttf") format("truetype");
+  font-weight: 400 600;
+  font-display: swap;
 }
 
 @theme {
   --font-poppins: "Poppins", sans-serif;
   --font-barlow: "Barlow", sans-serif;
 
-  --color-latar: #f3f4f6;
-  --color-teks: #374151;
-  --color-teks-samping: #6b7280;
-  --color-garis: #e5e7eb;
-  --color-hijau: #00B074;
+  --color-latar: #f8fafc;
+  --color-teks: #111827;
+  --color-teks-samping: #64748b;
+  --color-garis: #e2e8f0;
+  --color-hijau: #059669;
   --color-merah: #ef4444;
   --color-biru: #3b82f6;
   --color-kuning: #f59e0b;
 }
 
 body {
-  @apply font-barlow bg-latar;
+  @apply m-0 bg-latar font-barlow text-teks antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:not(:disabled),
+select:not(:disabled) {
+  cursor: pointer;
+}
+
+::selection {
+  background: #a7f3d0;
+  color: #064e3b;
 }
 
 @keyframes scaleIn {
@@ -41,12 +69,4 @@ body {
 
 .animate-scaleIn {
   animation: scaleIn 0.2s ease-out;
-}
-
-.menu-link {
-  @apply flex items-center p-3 rounded-lg text-gray-600 hover:bg-green-100 hover:text-hijau transition;
-}
-
-.menu-link.active {
-  @apply bg-green-200 text-hijau font-semibold;
 }

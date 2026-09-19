@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://akademik-api-production.up.railway.app/api",
+  baseURL:
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+    "http://127.0.0.1:8000/api",
 });
 
 export default api;
