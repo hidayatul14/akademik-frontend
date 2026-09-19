@@ -22,7 +22,7 @@ export default function Toast({ toast, onClose }: Props) {
       <div className={`flex items-start gap-3 rounded-xl border bg-white p-4 shadow-xl ${success ? "border-emerald-200" : "border-red-200"}`}>
         <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${success ? "text-emerald-600" : "text-red-600"}`} />
         <p className="flex-1 text-sm font-medium text-gray-800">{toast.message}</p>
-        <button type="button" onClick={onClose} aria-label="Dismiss notification" className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"><X className="h-4 w-4" /></button>
+        <button type="button" onClick={onClose} aria-label="Tutup notifikasi" className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"><X className="h-4 w-4" /></button>
       </div>
     </div>
   );

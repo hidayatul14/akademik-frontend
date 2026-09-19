@@ -35,7 +35,7 @@ export default function ModalShell({ busy = false, children, eyebrow, footer, ti
             <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">{eyebrow}</p>
             <h2 id={titleId} className="mt-1 text-xl font-semibold text-slate-950">{title}</h2>
           </div>
-          <button type="button" disabled={busy} onClick={onClose} aria-label="Close form" className="rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50">
+          <button type="button" disabled={busy} onClick={onClose} aria-label="Tutup formulir" className="rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50">
             <X className="h-5 w-5" />
           </button>
         </header>

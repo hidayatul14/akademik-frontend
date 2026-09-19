@@ -68,10 +68,10 @@ export default function StudentsPage() {
     try {
       await api.delete(`/students/${deleteTarget.id}`);
       setDeleteTarget(null);
-      setToast({ id: Date.now(), type: "success", message: "Student deleted successfully." });
+      setToast({ id: Date.now(), type: "success", message: "Data mahasiswa berhasil dihapus." });
       setRefreshKey((value) => value + 1);
     } catch {
-      setToast({ id: Date.now(), type: "error", message: "Student could not be deleted. It may still be referenced by enrollments." });
+      setToast({ id: Date.now(), type: "error", message: "Data mahasiswa tidak dapat dihapus karena masih digunakan pada KRS." });
     } finally {
       setDeleting(false);
     }
@@ -79,17 +79,20 @@ export default function StudentsPage() {
 
   return (
     <div>
-      <PageHeader title="Students" breadcrumb="Master Data / Students" description="Maintain verified student identities and contact information used across enrollment records." />
+      <PageHeader
+        title="Mahasiswa"
+        breadcrumb="Data Induk / Mahasiswa"
+        description="Kelola identitas dan informasi kontak mahasiswa yang digunakan dalam data KRS."
+        actions={<button type="button" onClick={() => setModalOpen(true)} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 sm:w-auto"><Plus className="h-4 w-4" /> Tambah Mahasiswa</button>}
+      />
 
-      <section className="mt-6 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+      <section aria-label="Pencarian mahasiswa" className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <label className="relative w-full max-w-md">
-          <span className="sr-only">Search students</span>
+          <span className="sr-only">Cari mahasiswa</span>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search NIM, name, or email..." className="h-11 w-full rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-100" />
+          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari NIM, nama, atau email..." className="h-11 w-full rounded-md border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
         </label>
-        <button type="button" onClick={() => setModalOpen(true)} className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white hover:bg-emerald-800">
-          <Plus className="h-4 w-4" /> Add student
-        </button>
+        {!loading && !error && <p className="text-sm text-slate-500">{pagination?.total.toLocaleString("id-ID") ?? 0} mahasiswa</p>}
       </section>
 
       <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -97,8 +100,8 @@ export default function StudentsPage() {
           <table className="w-full min-w-[720px]">
             <thead className="bg-slate-50">
               <tr>
-                {["NIM", "Student name", "Email"].map((label) => <th key={label} className="border-b border-slate-200 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</th>)}
-                <th className="border-b border-slate-200 px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                {["NIM", "Nama Mahasiswa", "Email"].map((label) => <th key={label} className="border-b border-slate-200 px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</th>)}
+                <th className="border-b border-slate-200 px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -109,8 +112,8 @@ export default function StudentsPage() {
                   <td className="px-5 py-4 text-sm font-medium text-slate-800">{student.name}</td>
                   <td className="px-5 py-4 text-sm text-slate-600">{student.email}</td>
                   <td className="px-5 py-4 text-right">
-                    <button type="button" onClick={() => { setEditData(student); setModalOpen(true); }} aria-label={`Edit ${student.name}`} className="rounded-md p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700"><Pencil className="h-4 w-4" /></button>
-                    <button type="button" onClick={() => setDeleteTarget(student)} aria-label={`Delete ${student.name}`} className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => { setEditData(student); setModalOpen(true); }} aria-label={`Ubah ${student.name}`} className="rounded-md p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><Pencil className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => setDeleteTarget(student)} aria-label={`Hapus ${student.name}`} className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"><Trash2 className="h-4 w-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -122,12 +125,12 @@ export default function StudentsPage() {
 
       <MasterDataPagination pagination={pagination} loading={loading} onPageChange={setPage} />
       {modalOpen && <StudentModal editData={editData} onClose={closeModal} onSuccess={handleSaved} />}
-      <ConfirmDialog open={Boolean(deleteTarget)} busy={deleting} title="Delete student?" description="Students referenced by enrollment records cannot be deleted. This action cannot be undone." onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <ConfirmDialog open={Boolean(deleteTarget)} busy={deleting} title="Hapus mahasiswa?" description="Mahasiswa yang masih digunakan dalam data KRS tidak dapat dihapus. Tindakan ini tidak dapat dibatalkan." confirmLabel="Hapus Mahasiswa" onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
 
 function EmptyState({ error }: { error: boolean }) {
-  return <div className="grid min-h-64 place-items-center p-6 text-center"><div><Inbox className="mx-auto h-7 w-7 text-slate-400" /><h3 className="mt-3 font-semibold text-slate-900">{error ? "Unable to load students" : "No students found"}</h3><p className="mt-1 text-sm text-slate-500">{error ? "Check the API connection and try again." : "Adjust your search or add a new student."}</p></div></div>;
+  return <div className="grid min-h-64 place-items-center p-6 text-center"><div><Inbox className="mx-auto h-7 w-7 text-slate-400" /><h3 className="mt-3 font-semibold text-slate-900">{error ? "Data mahasiswa gagal dimuat" : "Mahasiswa tidak ditemukan"}</h3><p className="mt-1 text-sm text-slate-500">{error ? "Periksa koneksi API lalu coba lagi." : "Ubah kata pencarian atau tambahkan mahasiswa baru."}</p></div></div>;
 }

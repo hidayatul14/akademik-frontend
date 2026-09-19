@@ -32,9 +32,9 @@ export default function CourseModal({ editData, onClose, onSuccess }: Props) {
 
   const validate = (): Errors => {
     const next: Errors = {};
-    if (!/^[A-Z]{2,4}[0-9]{3}$/.test(form.code)) next.code = "Use 2–4 uppercase letters followed by 3 digits.";
-    if (form.name.trim().length < 3 || form.name.trim().length > 120) next.name = "Name must be 3–120 characters.";
-    if (!Number.isInteger(form.credits) || form.credits < 1 || form.credits > 6) next.credits = "Credits must be an integer from 1 to 6.";
+    if (!/^[A-Z]{2,4}[0-9]{3}$/.test(form.code)) next.code = "Gunakan 2–4 huruf kapital diikuti 3 angka.";
+    if (form.name.trim().length < 3 || form.name.trim().length > 120) next.name = "Nama mata kuliah harus terdiri dari 3–120 karakter.";
+    if (!Number.isInteger(form.credits) || form.credits < 1 || form.credits > 6) next.credits = "SKS harus berupa bilangan bulat dari 1 sampai 6.";
     return next;
   };
 
@@ -49,7 +49,7 @@ export default function CourseModal({ editData, onClose, onSuccess }: Props) {
     try {
       if (editData) await api.put(`/courses/${editData.id}`, form);
       else await api.post("/courses", form);
-      onSuccess(editData ? "Course updated successfully." : "Course created successfully.");
+      onSuccess(editData ? "Mata kuliah berhasil diperbarui." : "Mata kuliah berhasil ditambahkan.");
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 422 && error.response.data?.errors) {
         const mapped: Errors = {};
@@ -58,7 +58,7 @@ export default function CourseModal({ editData, onClose, onSuccess }: Props) {
         });
         setErrors(mapped);
       } else {
-        setErrors({ form: "Course data could not be saved. Please try again." });
+        setErrors({ form: "Data mata kuliah gagal disimpan. Silakan coba lagi." });
       }
     } finally {
       setBusy(false);
@@ -67,29 +67,29 @@ export default function CourseModal({ editData, onClose, onSuccess }: Props) {
 
   const footer = (
     <>
-      <button type="button" disabled={busy} onClick={onClose} className="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+      <button type="button" disabled={busy} onClick={onClose} className="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Batal</button>
       <button type="button" disabled={busy} onClick={submit} className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
         {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
-        {busy ? "Saving..." : "Save course"}
+        {busy ? "Menyimpan..." : "Simpan Mata Kuliah"}
       </button>
     </>
   );
 
   return (
-    <ModalShell busy={busy} eyebrow="Course master" title={editData ? "Edit course" : "Add course"} titleId="course-modal-title" footer={footer} onClose={onClose}>
+    <ModalShell busy={busy} eyebrow="Data Induk Mata Kuliah" title={editData ? "Ubah Mata Kuliah" : "Tambah Mata Kuliah"} titleId="course-modal-title" footer={footer} onClose={onClose}>
       {errors.form && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{errors.form}</p>}
       <label className="block text-sm font-medium text-slate-700">
-        Course code <span className="text-red-500">*</span>
+        Kode MK <span className="text-red-500">*</span>
         <input disabled={Boolean(editData)} value={form.code} onChange={(event) => update("code", event.target.value.toUpperCase().replace(/\s/g, ""))} className={fieldClass} />
         {errors.code && <span className="mt-1 block text-xs text-red-600">{errors.code}</span>}
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        Course name <span className="text-red-500">*</span>
+        Nama mata kuliah <span className="text-red-500">*</span>
         <input value={form.name} onChange={(event) => update("name", event.target.value)} className={fieldClass} />
         {errors.name && <span className="mt-1 block text-xs text-red-600">{errors.name}</span>}
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        Credits <span className="text-red-500">*</span>
+        SKS <span className="text-red-500">*</span>
         <input type="number" min={1} max={6} value={form.credits} onChange={(event) => update("credits", Number(event.target.value))} className={fieldClass} />
         {errors.credits && <span className="mt-1 block text-xs text-red-600">{errors.credits}</span>}
       </label>

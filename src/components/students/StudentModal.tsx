@@ -32,9 +32,9 @@ export default function StudentModal({ editData, onClose, onSuccess }: Props) {
 
   const validate = (): Errors => {
     const next: Errors = {};
-    if (!/^\d{8,12}$/.test(form.nim)) next.nim = "NIM must contain 8–12 digits.";
-    if (form.name.trim().length < 3 || form.name.trim().length > 100) next.name = "Name must be 3–100 characters.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = "Enter a valid email address.";
+    if (!/^\d{8,12}$/.test(form.nim)) next.nim = "NIM harus terdiri dari 8–12 angka.";
+    if (form.name.trim().length < 3 || form.name.trim().length > 100) next.name = "Nama harus terdiri dari 3–100 karakter.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = "Masukkan alamat email yang valid.";
     return next;
   };
 
@@ -49,7 +49,7 @@ export default function StudentModal({ editData, onClose, onSuccess }: Props) {
     try {
       if (editData) await api.put(`/students/${editData.id}`, form);
       else await api.post("/students", form);
-      onSuccess(editData ? "Student updated successfully." : "Student created successfully.");
+      onSuccess(editData ? "Data mahasiswa berhasil diperbarui." : "Mahasiswa berhasil ditambahkan.");
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 422 && error.response.data?.errors) {
         const mapped: Errors = {};
@@ -58,7 +58,7 @@ export default function StudentModal({ editData, onClose, onSuccess }: Props) {
         });
         setErrors(mapped);
       } else {
-        setErrors({ form: "Student data could not be saved. Please try again." });
+        setErrors({ form: "Data mahasiswa gagal disimpan. Silakan coba lagi." });
       }
     } finally {
       setBusy(false);
@@ -67,16 +67,16 @@ export default function StudentModal({ editData, onClose, onSuccess }: Props) {
 
   const footer = (
     <>
-      <button type="button" disabled={busy} onClick={onClose} className="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+      <button type="button" disabled={busy} onClick={onClose} className="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Batal</button>
       <button type="button" disabled={busy} onClick={submit} className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
         {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
-        {busy ? "Saving..." : "Save student"}
+        {busy ? "Menyimpan..." : "Simpan Mahasiswa"}
       </button>
     </>
   );
 
   return (
-    <ModalShell busy={busy} eyebrow="Student master" title={editData ? "Edit student" : "Add student"} titleId="student-modal-title" footer={footer} onClose={onClose}>
+    <ModalShell busy={busy} eyebrow="Data Induk Mahasiswa" title={editData ? "Ubah Mahasiswa" : "Tambah Mahasiswa"} titleId="student-modal-title" footer={footer} onClose={onClose}>
       {errors.form && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{errors.form}</p>}
       <label className="block text-sm font-medium text-slate-700">
         NIM <span className="text-red-500">*</span>
@@ -84,7 +84,7 @@ export default function StudentModal({ editData, onClose, onSuccess }: Props) {
         {errors.nim && <span className="mt-1 block text-xs text-red-600">{errors.nim}</span>}
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        Full name <span className="text-red-500">*</span>
+        Nama lengkap <span className="text-red-500">*</span>
         <input value={form.name} onChange={(event) => update("name", event.target.value)} className={fieldClass} />
         {errors.name && <span className="mt-1 block text-xs text-red-600">{errors.name}</span>}
       </label>

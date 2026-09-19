@@ -15,6 +15,8 @@ import useEnrollmentData from "../features/enrollments/useEnrollmentData";
 import useAutoDismissToast from "../hooks/useAutoDismissToast";
 import useDebouncedValue from "../hooks/useDebouncedValue";
 
+const numberFormatter = new Intl.NumberFormat("id-ID");
+
 export default function EnrollmentsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -31,6 +33,7 @@ export default function EnrollmentsPage() {
   const [editData, setEditData] = useState<Enrollment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const hasActiveFilters = Boolean(search || statusFilter || semesterFilter || advancedFilters.length);
   const { toast, setToast } = useAutoDismissToast();
   const { data, error, loading, pagination } = useEnrollmentData({
     advancedFilters,
@@ -53,10 +56,10 @@ export default function EnrollmentsPage() {
     try {
       await api.delete(`/enrollments/${deleteTarget}`);
       setDeleteTarget(null);
-      setToast({ id: Date.now(), type: "success", message: "Enrollment deleted successfully." });
+      setToast({ id: Date.now(), type: "success", message: "Data KRS berhasil dihapus." });
       refresh();
     } catch {
-      setToast({ id: Date.now(), type: "error", message: "The enrollment could not be deleted. Please try again." });
+      setToast({ id: Date.now(), type: "error", message: "Data KRS gagal dihapus. Silakan coba lagi." });
     } finally {
       setDeleting(false);
     }
@@ -86,7 +89,21 @@ export default function EnrollmentsPage() {
 
   return (
     <div>
-      <PageHeader title="KRS Management" breadcrumb="Academic Operations / Enrollments" description="Review, filter, and manage course registrations across the active academic period." />
+      <PageHeader
+        title="Pengelolaan KRS"
+        breadcrumb="Akademik / KRS"
+        description="Tinjau pengambilan mata kuliah, kelola status, dan temukan data yang dibutuhkan."
+        actions={
+          <>
+            <button type="button" onClick={handleExport} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:flex-none">
+              <Download className="h-4 w-4" /> Ekspor CSV
+            </button>
+            <button type="button" onClick={() => setOpenModal(true)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 sm:flex-none">
+              <Plus className="h-4 w-4" /> Tambah KRS
+            </button>
+          </>
+        }
+      />
 
       <EnrollmentFilters
         advancedFilterCount={advancedFilters.length}
@@ -100,18 +117,10 @@ export default function EnrollmentsPage() {
         onOpenAdvancedFilters={() => setFilterDrawerOpen(true)}
       />
 
-      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mt-7 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Enrollment records</h2>
-          <p className="mt-1 text-sm text-gray-500">Manage course registrations and academic status in one place.</p>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={handleExport} className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400">
-            <Download className="h-4 w-4" /> Export CSV
-          </button>
-          <button type="button" onClick={() => setOpenModal(true)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-hijau px-4 text-sm font-semibold text-white shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2">
-            <Plus className="h-4 w-4" /> Add enrollment
-          </button>
+          <h2 className="font-poppins text-lg font-semibold text-slate-950">{hasActiveFilters ? "Hasil pencarian" : "Daftar KRS"}</h2>
+          <p className="mt-1 text-sm text-slate-500">{loading ? "Memuat data..." : error ? "Data belum dapat dimuat." : `${numberFormatter.format(pagination?.total ?? 0)} data ditemukan${hasActiveFilters ? " berdasarkan filter aktif" : ""}.`}</p>
         </div>
       </div>
 
@@ -134,7 +143,7 @@ export default function EnrollmentsPage() {
         />
       )}
 
-      <ConfirmDialog open={deleteTarget !== null} busy={deleting} title="Delete enrollment?" description="This removes the KRS record from active data. Student and course master data will remain available." onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <ConfirmDialog open={deleteTarget !== null} busy={deleting} title="Hapus data KRS?" description="Data KRS akan dihapus dari daftar aktif. Data mahasiswa dan mata kuliah tetap tersimpan." confirmLabel="Hapus KRS" onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );

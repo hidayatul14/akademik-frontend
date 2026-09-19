@@ -36,7 +36,7 @@ export default function useEnrollmentData({ advancedFilters, filterLogic, page, 
         setData(response.data.data);
         setPagination(response.data);
       } catch {
-        if (!controller.signal.aborted) setError("We could not retrieve enrollment data. Check the API connection and try again.");
+        if (!controller.signal.aborted) setError("Data KRS belum dapat dimuat. Periksa koneksi API lalu coba lagi.");
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
