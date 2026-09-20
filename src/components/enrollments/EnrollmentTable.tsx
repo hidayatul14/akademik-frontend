@@ -5,7 +5,9 @@ import { statusLabels } from "../../features/enrollments/statusLabels";
 interface Props {
   data: Enrollment[];
   error: string | null;
+  hasFilters: boolean;
   loading: boolean;
+  onClearFilters: () => void;
   sorts: EnrollmentSort[];
   onDelete: (id: number) => void;
   onEdit: (row: Enrollment) => void;
@@ -30,7 +32,7 @@ const statusClasses: Record<Enrollment["status"], string> = {
   REJECTED: "bg-red-50 text-red-700 ring-red-200",
 };
 
-export default function EnrollmentTable({ data, error, loading, sorts, onDelete, onEdit, onRetry, onSort }: Props) {
+export default function EnrollmentTable({ data, error, hasFilters, loading, onClearFilters, sorts, onDelete, onEdit, onRetry, onSort }: Props) {
   const sortState = (field: string) => {
     const index = sorts.findIndex((sort) => sort.field === field);
     return index === -1 ? null : { ...sorts[index], priority: index + 1 };
@@ -124,7 +126,8 @@ export default function EnrollmentTable({ data, error, loading, sorts, onDelete,
         <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
           <span className="rounded-full bg-gray-100 p-3 text-gray-500"><Inbox className="h-6 w-6" /></span>
           <h3 className="mt-4 font-semibold text-gray-900">Data KRS tidak ditemukan</h3>
-          <p className="mt-1 text-sm text-gray-500">Ubah pencarian atau filter, atau tambahkan KRS baru.</p>
+          <p className="mt-1 text-sm text-gray-500">{hasFilters ? "Coba ubah kata kunci atau bersihkan filter yang aktif." : "Belum ada data KRS. Tambahkan KRS baru untuk memulai."}</p>
+          {hasFilters && <button type="button" onClick={onClearFilters} className="mt-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">Bersihkan filter</button>}
         </div>
       )}
     </div>

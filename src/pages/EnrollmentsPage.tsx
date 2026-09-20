@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, X } from "lucide-react";
 import api from "../api/axios";
 import type { Enrollment, EnrollmentFilter, EnrollmentSort } from "../types/enrollment";
 import PageHeader from "../components/PageHeader";
@@ -33,6 +33,7 @@ export default function EnrollmentsPage() {
   const [editData, setEditData] = useState<Enrollment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exportNotice, setExportNotice] = useState(false);
   const hasActiveFilters = Boolean(search || statusFilter || semesterFilter || advancedFilters.length);
   const { toast, setToast } = useAutoDismissToast();
   const { data, error, loading, pagination } = useEnrollmentData({
@@ -65,16 +66,22 @@ export default function EnrollmentsPage() {
     }
   };
 
-  const handleExport = () => {
-    const exportUrl = buildEnrollmentExportUrl(api.defaults.baseURL ?? "", {
-      advancedFilters,
-      filterLogic,
-      search,
-      semester: semesterFilter,
-      sorts,
-      status: statusFilter,
-    });
-    window.open(exportUrl, "_blank", "noopener,noreferrer");
+  const exportUrl = buildEnrollmentExportUrl(api.defaults.baseURL ?? "", {
+    advancedFilters,
+    filterLogic,
+    search,
+    semester: semesterFilter,
+    sorts,
+    status: statusFilter,
+  });
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setSemesterFilter("");
+    setAdvancedFilters([]);
+    setFilterLogic("AND");
+    resetToFirstPage();
   };
 
   const toggleSort = (field: string) => {
@@ -95,15 +102,22 @@ export default function EnrollmentsPage() {
         description="Tinjau pengambilan mata kuliah, kelola status, dan temukan data yang dibutuhkan."
         actions={
           <>
-            <button type="button" onClick={handleExport} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:flex-none">
+            <a href={exportUrl} target="_blank" rel="noopener noreferrer" onClick={() => setExportNotice(true)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:flex-none">
               <Download className="h-4 w-4" /> Ekspor CSV
-            </button>
+            </a>
             <button type="button" onClick={() => setOpenModal(true)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 sm:flex-none">
               <Plus className="h-4 w-4" /> Tambah KRS
             </button>
           </>
         }
       />
+
+      {exportNotice && (
+        <div role="status" className="mt-5 flex items-start justify-between gap-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          <p>Permintaan ekspor dibuka di tab baru. Untuk data besar, unduhan dapat memakan waktu; Anda tetap bisa menggunakan halaman ini. Jika gagal, periksa tab unduhan atau coba lagi.</p>
+          <button type="button" onClick={() => setExportNotice(false)} aria-label="Tutup informasi ekspor" className="shrink-0 rounded p-0.5 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"><X className="h-4 w-4" /></button>
+        </div>
+      )}
 
       <EnrollmentFilters
         advancedFilterCount={advancedFilters.length}
@@ -113,7 +127,7 @@ export default function EnrollmentsPage() {
         onSearchChange={(value) => { setSearch(value); resetToFirstPage(); }}
         onStatusChange={(value) => { setStatusFilter(value); resetToFirstPage(); }}
         onSemesterChange={(value) => { setSemesterFilter(value); resetToFirstPage(); }}
-        onClear={() => { setSearch(""); setStatusFilter(""); setSemesterFilter(""); setAdvancedFilters([]); setFilterLogic("AND"); resetToFirstPage(); }}
+        onClear={clearFilters}
         onOpenAdvancedFilters={() => setFilterDrawerOpen(true)}
       />
 
@@ -124,7 +138,7 @@ export default function EnrollmentsPage() {
         </div>
       </div>
 
-      <EnrollmentTable data={data} error={error} loading={loading} onEdit={(row) => { setEditData(row); setOpenModal(true); }} onDelete={setDeleteTarget} sorts={sorts} onSort={toggleSort} onRetry={refresh} />
+      <EnrollmentTable data={data} error={error} loading={loading} hasFilters={hasActiveFilters} onClearFilters={clearFilters} onEdit={(row) => { setEditData(row); setOpenModal(true); }} onDelete={setDeleteTarget} sorts={sorts} onSort={toggleSort} onRetry={refresh} />
       <EnrollmentPagination pagination={pagination} page={page} pageSize={pageSize} disabled={loading} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); resetToFirstPage(); }} />
 
       {openModal && <EnrollmentModal editData={editData} onClose={() => { setOpenModal(false); setEditData(null); }} onSuccess={(message) => { setOpenModal(false); setEditData(null); setToast({ id: Date.now(), type: "success", message }); refresh(); }} />}

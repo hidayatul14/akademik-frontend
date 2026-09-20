@@ -1,5 +1,5 @@
 import { Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { EnrollmentFilter, FilterOperator } from "../../types/enrollment";
 import { statusLabels } from "../../features/enrollments/statusLabels";
 
@@ -42,9 +42,51 @@ const createCondition = (): EnrollmentFilter => ({
 export default function AdvancedFilterDrawer({ filters, logic, onApply, onClose }: Props) {
   const [draftFilters, setDraftFilters] = useState<EnrollmentFilter[]>(filters.length ? filters : [createCondition()]);
   const [draftLogic, setDraftLogic] = useState<"AND" | "OR">(logic);
+  const [conditionErrors, setConditionErrors] = useState<Record<string, string>>({});
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+
+  useEffect(() => { closeRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    dialog?.querySelector<HTMLElement>("button")?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeRef.current();
+      }
+      if (event.key !== "Tab" || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, []);
 
   const updateCondition = (id: string, patch: Partial<EnrollmentFilter>) => {
     setDraftFilters((current) => current.map((filter) => filter.id === id ? { ...filter, ...patch } : filter));
+    setConditionErrors((current) => {
+      if (!current[id]) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
   };
 
   const changeField = (condition: EnrollmentFilter, field: string) => {
@@ -53,20 +95,33 @@ export default function AdvancedFilterDrawer({ filters, logic, onApply, onClose 
   };
 
   const apply = () => {
-    const normalized = draftFilters
-      .map((filter) => ({
-        ...filter,
-        value: filter.operator === "in" && typeof filter.value === "string"
-          ? filter.value.split(",").map((value) => value.trim()).filter(Boolean)
-          : filter.value,
-      }))
-      .filter((filter) => Array.isArray(filter.value) ? filter.value.some(Boolean) : filter.value.trim() !== "");
+    const errors: Record<string, string> = {};
+    const normalized = draftFilters.flatMap<EnrollmentFilter>((filter) => {
+      if (filter.operator === "between") {
+        const values = Array.isArray(filter.value) ? filter.value.map((value) => value.trim()) : [];
+        if (values.every((value) => !value)) return [];
+        if (values.length !== 2 || values.some((value) => !value)) {
+          errors[filter.id] = "Isi nilai awal dan akhir sebelum menerapkan filter.";
+          return [];
+        }
+        return [{ ...filter, value: values }];
+      }
+      if (filter.operator === "in") {
+        const values = (Array.isArray(filter.value) ? filter.value : filter.value.split(","))
+          .map((value) => value.trim()).filter(Boolean);
+        return values.length ? [{ ...filter, value: values }] : [];
+      }
+      const value = typeof filter.value === "string" ? filter.value.trim() : "";
+      return value ? [{ ...filter, value }] : [];
+    });
+    setConditionErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     onApply(normalized, draftLogic);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <aside role="dialog" aria-modal="true" aria-labelledby="advanced-filter-title" className="flex h-full w-full max-w-xl flex-col bg-white shadow-xl">
+      <aside ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="advanced-filter-title" className="flex h-full w-full max-w-xl flex-col bg-white shadow-xl">
         <header className="flex items-start justify-between border-b border-gray-200 px-6 py-5">
           <div>
             <div className="flex items-center gap-2 text-hijau"><SlidersHorizontal className="h-5 w-5" /><span className="text-xs font-semibold uppercase tracking-wider">Penyusun Filter</span></div>
@@ -134,6 +189,7 @@ export default function AdvancedFilterDrawer({ filters, logic, onApply, onClose 
                       <input value={Array.isArray(condition.value) ? condition.value.join(", ") : condition.value} onChange={(event) => updateCondition(condition.id, { value: event.target.value })} placeholder={condition.operator === "in" ? "Pisahkan nilai dengan koma" : "Masukkan nilai"} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:border-hijau focus:ring-2 focus:ring-green-100" />
                     )}
                   </div>
+                  {conditionErrors[condition.id] && <p role="alert" className="mt-2 text-xs font-medium text-red-600">{conditionErrors[condition.id]}</p>}
                 </div>
               );
             })}

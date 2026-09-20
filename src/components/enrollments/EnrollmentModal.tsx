@@ -55,21 +55,30 @@ export default function EnrollmentModal({ editData, onClose, onSuccess }: Props)
   const [courseSearch, setCourseSearch] = useState("");
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [courses, setCourses] = useState<CourseOption[]>([]);
+  const [studentSearchState, setStudentSearchState] = useState<"idle" | "loading" | "error">("idle");
+  const [courseSearchState, setCourseSearchState] = useState<"idle" | "loading" | "error">("idle");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const studentTimer = useRef<number | null>(null);
   const courseTimer = useRef<number | null>(null);
+  const studentRequest = useRef(0);
+  const courseRequest = useRef(0);
   const firstInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     firstInput.current?.focus();
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape" && !busy) onClose(); };
-    window.addEventListener("keydown", closeOnEscape);
     return () => {
-      window.removeEventListener("keydown", closeOnEscape);
+      studentRequest.current += 1;
+      courseRequest.current += 1;
       if (studentTimer.current) window.clearTimeout(studentTimer.current);
       if (courseTimer.current) window.clearTimeout(courseTimer.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape" && !busy) onClose(); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
   }, [busy, onClose]);
 
   const setValue = <K extends keyof FormState>(field: K, value: FormState[K]) => {
@@ -79,19 +88,41 @@ export default function EnrollmentModal({ editData, onClose, onSuccess }: Props)
 
   const scheduleStudentSearch = (keyword: string) => {
     setStudentSearch(keyword);
+    setStudents([]);
+    setStudentSearchState(keyword.trim() ? "loading" : "idle");
+    const request = ++studentRequest.current;
     if (studentTimer.current) window.clearTimeout(studentTimer.current);
+    if (!keyword.trim()) return;
     studentTimer.current = window.setTimeout(async () => {
-      const response = await api.get<StudentOption[]>("/students/search", { params: { search: keyword } });
-      setStudents(response.data);
+      try {
+        const response = await api.get<StudentOption[]>("/students/search", { params: { search: keyword } });
+        if (request !== studentRequest.current) return;
+        setStudents(response.data);
+        setStudentSearchState("idle");
+      } catch {
+        if (request !== studentRequest.current) return;
+        setStudentSearchState("error");
+      }
     }, 350);
   };
 
   const scheduleCourseSearch = (keyword: string) => {
     setCourseSearch(keyword);
+    setCourses([]);
+    setCourseSearchState(keyword.trim() ? "loading" : "idle");
+    const request = ++courseRequest.current;
     if (courseTimer.current) window.clearTimeout(courseTimer.current);
+    if (!keyword.trim()) return;
     courseTimer.current = window.setTimeout(async () => {
-      const response = await api.get<CourseOption[]>("/courses/search", { params: { search: keyword } });
-      setCourses(response.data);
+      try {
+        const response = await api.get<CourseOption[]>("/courses/search", { params: { search: keyword } });
+        if (request !== courseRequest.current) return;
+        setCourses(response.data);
+        setCourseSearchState("idle");
+      } catch {
+        if (request !== courseRequest.current) return;
+        setCourseSearchState("error");
+      }
     }, 350);
   };
 
@@ -174,11 +205,13 @@ export default function EnrollmentModal({ editData, onClose, onSuccess }: Props)
 
           <section aria-labelledby="student-section"><div className="flex items-center justify-between"><div><h3 id="student-section" className="font-semibold text-gray-900">Informasi Mahasiswa</h3><p className="text-sm text-gray-500">Identitas dan kontak mahasiswa.</p></div>{!editing && <label className="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" checked={useExistingStudent} onChange={(event) => { setUseExistingStudent(event.target.checked); setErrors({}); }} className="h-4 w-4 rounded accent-emerald-600" />Gunakan data yang ada</label>}</div>
             {useExistingStudent && !editing ? <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-gray-700">Cari mahasiswa<div className="relative"><Search className="absolute left-3 top-1/2 mt-0.5 h-4 w-4 -translate-y-1/2 text-gray-400" /><input ref={firstInput} value={studentSearch} onChange={(event) => scheduleStudentSearch(event.target.value)} placeholder="Cari NIM atau nama" className={`${inputClass} pl-9`} /></div></label><label className="text-sm font-medium text-gray-700">Mahasiswa<span className="text-red-500"> *</span><select value={form.student_id} onChange={(event) => setValue("student_id", event.target.value)} className={inputClass}><option value="">Pilih mahasiswa</option>{students.map((student) => <option key={student.id} value={student.id}>{student.nim} — {student.name}</option>)}</select>{fieldError("student_id")}</label></div> : <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-gray-700">NIM<span className="text-red-500"> *</span><input ref={firstInput} disabled={editing} value={form.nim} inputMode="numeric" maxLength={12} onChange={(event) => setValue("nim", event.target.value.replace(/\D/g, ""))} className={inputClass} />{fieldError("nim")}</label><label className="text-sm font-medium text-gray-700">Nama mahasiswa<span className="text-red-500"> *</span><input value={form.student_name} onChange={(event) => setValue("student_name", event.target.value)} className={inputClass} />{fieldError("student_name")}</label><label className="text-sm font-medium text-gray-700 sm:col-span-2">Email<span className="text-red-500"> *</span><input type="email" value={form.email} onChange={(event) => setValue("email", event.target.value)} className={inputClass} />{fieldError("email")}</label></div>}
+            {useExistingStudent && !editing && <p role="status" className={`mt-2 text-xs ${studentSearchState === "error" ? "text-red-600" : "text-slate-500"}`}>{studentSearchState === "loading" ? "Mencari mahasiswa..." : studentSearchState === "error" ? "Pencarian mahasiswa gagal. Periksa koneksi lalu coba ketik ulang." : studentSearch.trim() && students.length === 0 ? "Tidak ada mahasiswa yang cocok." : "Ketik NIM atau nama untuk mencari mahasiswa."}</p>}
           </section>
 
           <hr className="border-gray-100" />
           <section aria-labelledby="course-section"><div className="flex items-center justify-between"><div><h3 id="course-section" className="font-semibold text-gray-900">Informasi Mata Kuliah</h3><p className="text-sm text-gray-500">Identitas mata kuliah dan jumlah SKS.</p></div>{!editing && <label className="flex items-center gap-2 text-sm font-medium text-gray-600"><input type="checkbox" checked={useExistingCourse} onChange={(event) => { setUseExistingCourse(event.target.checked); setErrors({}); }} className="h-4 w-4 rounded accent-emerald-600" />Gunakan data yang ada</label>}</div>
             {useExistingCourse && !editing ? <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-gray-700">Cari mata kuliah<div className="relative"><Search className="absolute left-3 top-1/2 mt-0.5 h-4 w-4 -translate-y-1/2 text-gray-400" /><input value={courseSearch} onChange={(event) => scheduleCourseSearch(event.target.value)} placeholder="Cari kode atau nama" className={`${inputClass} pl-9`} /></div></label><label className="text-sm font-medium text-gray-700">Mata kuliah<span className="text-red-500"> *</span><select value={form.course_id} onChange={(event) => setValue("course_id", event.target.value)} className={inputClass}><option value="">Pilih mata kuliah</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.code} — {course.name}</option>)}</select>{fieldError("course_id")}</label></div> : <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-gray-700">Kode MK<span className="text-red-500"> *</span><input disabled={editing} value={form.course_code} onChange={(event) => setValue("course_code", event.target.value.toUpperCase().replace(/\s/g, ""))} className={inputClass} />{fieldError("course_code")}</label><label className="text-sm font-medium text-gray-700">SKS<span className="text-red-500"> *</span><input type="number" min={1} max={6} value={form.credits} onChange={(event) => setValue("credits", Number(event.target.value))} className={inputClass} />{fieldError("credits")}</label><label className="text-sm font-medium text-gray-700 sm:col-span-2">Nama mata kuliah<span className="text-red-500"> *</span><input value={form.course_name} onChange={(event) => setValue("course_name", event.target.value)} className={inputClass} />{fieldError("course_name")}</label></div>}
+            {useExistingCourse && !editing && <p role="status" className={`mt-2 text-xs ${courseSearchState === "error" ? "text-red-600" : "text-slate-500"}`}>{courseSearchState === "loading" ? "Mencari mata kuliah..." : courseSearchState === "error" ? "Pencarian mata kuliah gagal. Periksa koneksi lalu coba ketik ulang." : courseSearch.trim() && courses.length === 0 ? "Tidak ada mata kuliah yang cocok." : "Ketik kode atau nama untuk mencari mata kuliah."}</p>}
           </section>
 
           <hr className="border-gray-100" />

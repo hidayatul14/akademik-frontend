@@ -12,16 +12,14 @@ export interface EnrollmentQuery {
 }
 
 export function buildEnrollmentFilters(query: EnrollmentQuery) {
-  return [
-    ...(query.status ? [{ field: "status", operator: "equal" as const, value: query.status }] : []),
-    ...(query.semester ? [{ field: "semester", operator: "equal" as const, value: query.semester }] : []),
-    ...query.advancedFilters.map(({ field, operator, value }) => ({ field, operator, value })),
-  ];
+  return query.advancedFilters.map(({ field, operator, value }) => ({ field, operator, value }));
 }
 
 export function buildEnrollmentExportUrl(baseUrl: string, query: EnrollmentQuery): string {
   const params = new URLSearchParams();
   if (query.search) params.set("search", query.search);
+  if (query.status) params.set("quick_status", query.status);
+  if (query.semester) params.set("quick_semester", query.semester);
   params.set("logic", query.filterLogic);
 
   query.sorts.forEach((sort, index) => {

@@ -31,6 +31,10 @@ VITE_API_BASE_URL=http://127.0.0.1:8000/api
 
 Open http://127.0.0.1:5173.
 
+## Static deployment
+
+Build with `npm ci && npm run build` and publish the `dist` directory. Set `VITE_API_BASE_URL=https://YOUR_API_HOST/api` in the hosting dashboard **before** building; Vite embeds it in the JavaScript bundle. The `vercel.json` rewrite allows direct navigation to SPA routes on Vercel. After the frontend URL is known, set the backend's `CORS_ALLOWED_ORIGINS` to that exact HTTPS origin and redeploy the backend.
+
 ## Quality checks
 
 ```bash
